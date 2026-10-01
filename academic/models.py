@@ -5,7 +5,7 @@ from django.db import models
 
 
 class Institution(models.Model):
-    """Institución médica cliente de la bodega farmacéutica."""
+    """Institución médica que compra insumos a la farmacia B2B."""
 
     name = models.CharField(max_length=180, unique=True)
     tax_id = models.CharField(max_length=20, blank=True)
@@ -15,7 +15,7 @@ class Institution(models.Model):
 
 
 class Profile(models.Model):
-    """Rol e institución asociados a una cuenta autenticada."""
+    """Rol e institución asociados a una cuenta autenticada para el flujo de compras y bodega."""
 
     class Role(models.TextChoices):
         MEDICAL_INSTITUTION = 'institucion_medica', 'Institución médica'
@@ -69,7 +69,7 @@ class MedicalSupply(models.Model):
 
 
 class Cart(models.Model):
-    """Carro persistente 1:1 del usuario, independiente de su sesión."""
+    """Carrito persistente del usuario, independiente de la sesión del navegador."""
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='medical_cart')
     updated_at = models.DateTimeField(auto_now=True)
@@ -79,7 +79,7 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    """Cantidad de un insumo dentro del carro; nunca reserva inventario."""
+    """Cantidad de un insumo dentro del carrito; no reserva inventario hasta confirmar la solicitud."""
 
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     supply = models.ForeignKey(MedicalSupply, on_delete=models.PROTECT, related_name='cart_items')
@@ -92,7 +92,7 @@ class CartItem(models.Model):
 
 
 class PurchaseRequest(models.Model):
-    """Solicitud histórica con estados explícitos para su ciclo transaccional."""
+    """Solicitud histórica con estados explícitos para el flujo de compra y control de inventario."""
 
     class Status(models.TextChoices):
         PENDING = 'pendiente', 'Pendiente'
@@ -109,7 +109,7 @@ class PurchaseRequest(models.Model):
 
 
 class PurchaseRequestItem(models.Model):
-    """Detalle que conserva nombre, lote y precio vigentes al confirmar."""
+    """Detalle que conserva nombre, lote y precio vigentes al confirmar la compra."""
 
     request = models.ForeignKey(PurchaseRequest, on_delete=models.CASCADE, related_name='items')
     supply = models.ForeignKey(MedicalSupply, on_delete=models.PROTECT, related_name='request_items')

@@ -13,7 +13,7 @@ from .models import Institution, MedicalSupply, Profile, PurchaseRequest, Supply
 
 
 class PharmacyApiTests(TestCase):
-    """Cubre autenticación, catálogo, carro y ciclo del stock."""
+    """Cubre autenticación, catálogo, carrito, confirmación de compra y descuento de stock."""
 
     def setUp(self):
         self.institution = Institution.objects.create(name='Centro Médico de Prueba')
@@ -88,7 +88,8 @@ class PharmacyApiTests(TestCase):
         self.manager.profile.refresh_from_db()
         self.assertEqual(self.manager.profile.role, Profile.Role.WAREHOUSE_MANAGER)
 
-    def test_cart_persists_and_checkout_snapshots_price_without_changing_stock(self):
+    def test_cart_persists_and_checkout_reduces_stock_in_database(self):
+        """La confirmación de la solicitud debe descontar el stock en la base de datos."""
         self.authenticate(self.customer)
         add_response = self.client.post(
             '/api/carro-insumos/',
@@ -96,6 +97,7 @@ class PharmacyApiTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(add_response.status_code, 200)
+        self.supply.refresh_from_db()
         self.assertEqual(self.supply.stock, 5)
 
         self.client.defaults.pop('HTTP_AUTHORIZATION')
@@ -107,7 +109,9 @@ class PharmacyApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()['status'], PurchaseRequest.Status.PENDING)
         self.assertEqual(response.json()['total'], '5000.00')
-        self.assertEqual(self.supply.stock, 5)
+
+        self.supply.refresh_from_db()
+        self.assertEqual(self.supply.stock, 3)
 
     def test_adding_same_supply_increments_one_cart_line(self):
         self.authenticate(self.customer)
@@ -126,7 +130,8 @@ class PharmacyApiTests(TestCase):
         self.assertEqual(len(response.json()['items']), 1)
         self.assertEqual(response.json()['items'][0]['quantity'], 3)
 
-    def test_paid_order_decrements_stock_and_paid_cancellation_restores_it(self):
+    def test_pending_order_keeps_stock_reduced_and_paid_state_does_not_double_deduct(self):
+        """La solicitud pendiente ya descontó stock; el pago solo cambia el estado."""
         self.authenticate(self.customer)
         self.client.post(
             '/api/carro-insumos/',
@@ -134,6 +139,8 @@ class PharmacyApiTests(TestCase):
             content_type='application/json',
         )
         order = self.client.post('/api/solicitudes/confirmar/').json()
+        self.supply.refresh_from_db()
+        self.assertEqual(self.supply.stock, 3)
 
         self.authenticate(self.manager)
         paid = self.client.patch(
@@ -154,21 +161,16 @@ class PharmacyApiTests(TestCase):
         self.supply.refresh_from_db()
         self.assertEqual(self.supply.stock, 5)
 
-    def test_payment_is_rejected_when_stock_is_insufficient(self):
+    def test_checkout_is_rejected_when_stock_is_insufficient(self):
+        """Se rechaza la compra si el inventario disponible no cubre la cantidad solicitada."""
         self.authenticate(self.customer)
         self.client.post(
             '/api/carro-insumos/',
             {'supply_id': self.supply.pk, 'quantity': 6},
             content_type='application/json',
         )
-        order = self.client.post('/api/solicitudes/confirmar/').json()
 
-        self.authenticate(self.manager)
-        response = self.client.patch(
-            f"/api/solicitudes/{order['id']}/estado/",
-            {'status': PurchaseRequest.Status.PAID},
-            content_type='application/json',
-        )
+        response = self.client.post('/api/solicitudes/confirmar/')
 
         self.assertEqual(response.status_code, 400)
         self.supply.refresh_from_db()
@@ -266,7 +268,8 @@ class PharmacyApiTests(TestCase):
         self.assertEqual(updated.json()['stock'], 30)
         self.assertFalse(updated.json()['is_active'])
 
-    def test_cart_warns_when_stock_is_insufficient(self):
+    def test_cart_rejects_checkout_when_stock_is_insufficient(self):
+        """El checkout debe fallar si la disponibilidad del stock es insuficiente."""
         self.authenticate(self.customer)
         self.client.post(
             '/api/carro-insumos/',
@@ -284,8 +287,9 @@ class PharmacyApiTests(TestCase):
         self.assertTrue(any(item['supply_id'] == self.supply.pk for item in response.json()['warnings']))
 
         checkout_response = self.client.post('/api/solicitudes/confirmar/')
-        self.assertEqual(checkout_response.status_code, 201)
-        self.assertIn('warnings', checkout_response.json())
+        self.assertEqual(checkout_response.status_code, 400)
+        self.supply.refresh_from_db()
+        self.assertEqual(self.supply.stock, 0)
 
     def test_homepage_is_distinct_from_catalog(self):
         home_response = self.client.get('/')

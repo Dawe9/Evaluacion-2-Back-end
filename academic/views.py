@@ -225,7 +225,7 @@ class MedicalCartView(APIView):
 
 
 class PurchaseRequestCheckoutView(APIView):
-    """Convierte el carrito en una solicitud con precios históricos y control de stock al confirmar."""
+    """Crea la solicitud del cliente y descuenta el inventario al confirmar la compra."""
 
     permission_classes = [IsAuthenticated, IsMedicalInstitution]
 
@@ -247,6 +247,31 @@ class PurchaseRequestCheckoutView(APIView):
             )
             if not cart_items:
                 raise ValidationError({'cart': 'El carro está vacío.'})
+
+            # Se valida el stock real del inventario antes de confirmar la solicitud.
+            quantities = defaultdict(int)
+            for item in cart_items:
+                quantities[item.supply_id] += item.quantity
+
+            supplies = {
+                supply.pk: supply
+                for supply in MedicalSupply.objects.select_for_update()
+                .filter(pk__in=quantities)
+                .order_by('pk')
+            }
+            for supply_id, quantity in quantities.items():
+                supply = supplies[supply_id]
+                if supply.expiration_date < timezone.localdate():
+                    raise ValidationError({'stock': f'El lote {supply.lot} está vencido.'})
+                if supply.stock < quantity:
+                    raise ValidationError({
+                        'stock': f'Stock insuficiente para {supply.commercial_name} ({supply.lot}).'
+                    })
+
+            for supply_id, quantity in quantities.items():
+                supply = supplies[supply_id]
+                supply.stock -= quantity
+                supply.save(update_fields=['stock'])
 
             order = PurchaseRequest.objects.create(
                 institution=profile.institution,
@@ -351,30 +376,15 @@ class PurchaseRequestStatusView(APIView):
             for item in order.items.all():
                 quantities[item.supply_id] += item.quantity
 
-            if target_status == PurchaseRequest.Status.PAID:
-                supplies = {
-                    supply.pk: supply
-                    for supply in MedicalSupply.objects.select_for_update()
-                    .filter(pk__in=quantities)
-                    .order_by('pk')
-                }
-                for supply_id, quantity in quantities.items():
-                    supply = supplies[supply_id]
-                    if supply.expiration_date < timezone.localdate():
-                        raise ValidationError({'stock': f'El lote {supply.lot} está vencido.'})
-                    if supply.stock < quantity:
-                        raise ValidationError({
-                            'stock': f'Stock insuficiente para {supply.commercial_name} ({supply.lot}).'
-                        })
-                for supply_id, quantity in quantities.items():
-                    supply = supplies[supply_id]
-                    supply.stock -= quantity
-                    supply.save(update_fields=['stock'])
+            if target_status == PurchaseRequest.Status.PAID and current_status == PurchaseRequest.Status.PENDING:
+                # El stock ya fue descontado al confirmar la solicitud; el pago solo cambia el estado.
+                pass
 
-            if (
-                target_status == PurchaseRequest.Status.CANCELLED
-                and current_status == PurchaseRequest.Status.PAID
-            ):
+            if target_status == PurchaseRequest.Status.CANCELLED and current_status in {
+                PurchaseRequest.Status.PENDING,
+                PurchaseRequest.Status.PAID,
+            }:
+                # Si la solicitud se cancela, se reingresa al inventario la cantidad que ya había salido.
                 supplies = {
                     supply.pk: supply
                     for supply in MedicalSupply.objects.select_for_update()

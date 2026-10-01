@@ -65,6 +65,6 @@ Abrir http://127.0.0.1:8000/.
 
 ## Notas del proyecto
 
-El stock solo se descuenta cuando una solicitud cambia a pagado, y la cancelación de una solicitud pagada repondrá el inventario dentro de la misma transacción.
+El stock se descuenta al confirmar la solicitud de compra, y la cancelación de una solicitud pendiente o pagada repondrá el inventario dentro de la misma transacción. El pago solo cambia el estado de la solicitud y no vuelve a descontar inventario.
 
 Consulta [GUIA_PROYECTO5.md](GUIA_PROYECTO5.md) para detalles del flujo de negocio, variables de entorno y pruebas del proyecto.
