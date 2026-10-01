@@ -1,14 +1,18 @@
-"""URLs REST de la aplicación académico-comercial."""
+"""Endpoints de catálogo, carro y solicitudes B2B de farmacia."""
 
 from django.urls import path
 
 from . import views
 
 urlpatterns = [
-    # Ruta raíz de la API: devuelve el recurso base de productos.
-    path('', views.resource_list, {'resource': 'products'}, name='api-root'),
-    # Esta ruta común sirve para listar y crear recursos.
-    path('<str:resource>/', views.resource_list, name='resource-list'),
-    # Detalle de un elemento concreto dentro de un recurso.
-    path('<str:resource>/<int:record_id>/', views.resource_detail, name='resource-detail'),
+    path('registro/', views.InstitutionRegistrationView.as_view(), name='institution-registration'),
+    path('categorias/', views.SupplyCategoryListCreateView.as_view(), name='category-list'),
+    path('categorias/<int:pk>/', views.SupplyCategoryDetailView.as_view(), name='category-detail'),
+    path('insumos/', views.MedicalSupplyListCreateView.as_view(), name='supply-list'),
+    path('insumos/<int:pk>/', views.MedicalSupplyDetailView.as_view(), name='supply-detail'),
+    path('carro-insumos/', views.MedicalCartView.as_view(), name='medical-cart'),
+    path('solicitudes/confirmar/', views.PurchaseRequestCheckoutView.as_view(), name='request-checkout'),
+    path('mis-solicitudes/', views.MyPurchaseRequestsView.as_view(), name='my-requests'),
+    path('solicitudes/', views.WarehousePurchaseRequestsView.as_view(), name='warehouse-requests'),
+    path('solicitudes/<int:pk>/estado/', views.PurchaseRequestStatusView.as_view(), name='request-status'),
 ]

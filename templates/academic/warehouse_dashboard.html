@@ -1,0 +1,349 @@
+{% extends 'academic/base.html' %}
+{% block title %}Panel de Administración | Botica Institucional{% endblock %}
+{% block content %}
+<style>
+    .warehouse-wrap { max-width: 1280px; }
+    .warehouse-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding: 2rem 0 1.35rem; border-bottom: 1px solid var(--line); }
+    .warehouse-actions { display: flex; align-items: center; gap: .5rem; }
+    .warehouse-kicker { color: var(--leaf); font-size: .7rem; font-weight: 700; letter-spacing: .12em; }
+    .warehouse-head h1 { margin: .35rem 0; font-size: 2.25rem; }
+    .warehouse-head p { margin: 0; color: var(--muted); font-size: .84rem; }
+    .warehouse-tabs { display: flex; gap: 1.25rem; border-bottom: 1px solid var(--line); margin-top: 1.2rem; }
+    .warehouse-tab { border: 0; border-bottom: 2px solid transparent; padding: .75rem .1rem; background: transparent; color: var(--muted); font-size: .85rem; }
+    .warehouse-tab[aria-selected="true"] { border-bottom-color: var(--pine); color: var(--pine); font-weight: 700; }
+    .warehouse-section { padding: 1.4rem 0 3.5rem; }
+    .warehouse-section[hidden] { display: none; }
+    .warehouse-section h2 { margin: 0 0 .25rem; font-size: 1.45rem; }
+    .section-caption { margin: 0 0 1rem; color: var(--muted); font-size: .78rem; }
+    .admin-tools { display: grid; grid-template-columns: minmax(250px, .8fr) minmax(0, 1.2fr); gap: 1.4rem; padding: 1rem 0 1.4rem; border-bottom: 1px solid var(--line); }
+    .admin-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+    .admin-form h3, .admin-form .form-wide { grid-column: 1 / -1; }
+    .admin-form h3 { margin: 0; font-family: 'DM Sans', sans-serif; font-size: .95rem; font-weight: 700; }
+    .admin-form label { display: block; margin-bottom: .25rem; color: var(--muted); font-size: .68rem; font-weight: 600; }
+    .admin-form .form-control, .admin-form .form-select { min-height: 39px; font-size: .78rem; }
+    .admin-form .btn { min-height: 40px; font-size: .8rem; }
+    .category-form { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .6rem; }
+    .category-form label { display: block; margin-bottom: .25rem; color: var(--muted); font-size: .68rem; font-weight: 600; }
+    .category-form .form-control { min-height: 39px; font-size: .78rem; }
+    .table-shell { overflow-x: auto; background: #fff; border: 1px solid var(--line); }
+    .warehouse-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: .78rem; }
+    .warehouse-table th { background: #edf2e9; color: #536259; font-size: .67rem; font-weight: 700; text-align: left; white-space: nowrap; }
+    .warehouse-table th, .warehouse-table td { padding: .7rem .75rem; border-bottom: 1px solid #e9eee8; vertical-align: middle; }
+    .warehouse-table tr:last-child td { border-bottom: 0; }
+    .warehouse-table td strong { color: var(--ink); }
+    .stock-chip, .status-chip { display: inline-block; padding: .22rem .4rem; background: #edf2e9; color: var(--pine); font-size: .66rem; font-weight: 700; }
+    .status-pendiente { background: #f5edce; color: #755a11; }
+    .status-pagado { background: #dceee3; color: #22563c; }
+    .status-cancelado { background: #f5e4df; color: #93432f; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .row-actions .btn { padding: .3rem .45rem; border-radius: 2px; font-size: .68rem; }
+    .empty-row { padding: 1.25rem; color: var(--muted); text-align: center; }
+    .warehouse-message { min-height: 1.4rem; margin: .65rem 0 0; color: var(--leaf); font-size: .76rem; }
+    .access-warning { margin: 2rem auto; max-width: 720px; padding: 1rem; border-left: 3px solid var(--coral); background: #fff; color: var(--ink); }
+    .access-warning a { font-weight: 700; }
+    @media (max-width: 820px) { .admin-tools { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .warehouse-head { display: block; } .warehouse-head h1 { font-size: 1.85rem; } .warehouse-actions { margin-top: .8rem; flex-wrap: wrap; } .admin-form { grid-template-columns: 1fr; } .admin-form h3, .admin-form .form-wide { grid-column: auto; } .category-form { grid-template-columns: 1fr; } .warehouse-tabs { gap: .8rem; } }
+</style>
+<div class="container warehouse-wrap">
+    <header class="warehouse-head">
+        <div>
+            <span class="warehouse-kicker">OPERACIONES · FARMACIA B2B</span>
+            <h1>Panel de administración</h1>
+            <p>Inventario, trazabilidad de lotes y solicitudes institucionales.</p>
+        </div>
+        <div class="warehouse-actions">
+            <button class="btn btn-success" type="button" id="open-docs">Documentación API</button>
+            <a class="btn btn-outline-success" href="/admin/">Administración completa</a>
+        </div>
+    </header>
+    <p class="warehouse-message" id="docs-message" role="status"></p>
+    <div id="access-warning" class="access-warning" hidden>
+        <strong>Acceso restringido.</strong> Ingresa con una cuenta con rol Gestor de Bodega.
+        <a href="/login/">Iniciar sesión</a>
+    </div>
+    <div id="warehouse-app" hidden>
+        <div class="warehouse-tabs" role="tablist" aria-label="Secciones de bodega">
+            <button class="warehouse-tab" type="button" role="tab" aria-selected="true" data-tab="inventory">Inventario</button>
+            <button class="warehouse-tab" type="button" role="tab" aria-selected="false" data-tab="requests">Solicitudes</button>
+        </div>
+        <section class="warehouse-section" id="inventory-panel" role="tabpanel">
+            <div class="admin-tools">
+                <form class="admin-form" id="category-form">
+                    <h3>Nueva categoría</h3>
+                    <div class="form-wide"><label for="category-name">Nombre</label><input class="form-control" id="category-name" maxlength="120" required></div>
+                    <div class="form-wide"><label for="category-description">Descripción</label><input class="form-control" id="category-description"></div>
+                    <button class="btn btn-outline-success form-wide" type="submit">Crear categoría</button>
+                </form>
+                <form class="admin-form" id="supply-form">
+                    <h3 id="supply-form-title">Registrar insumo</h3>
+                    <input id="supply-id" type="hidden">
+                    <div><label for="supply-category">Categoría</label><select class="form-select" id="supply-category" required></select></div>
+                    <div><label for="supply-name">Nombre comercial</label><input class="form-control" id="supply-name" maxlength="180" required></div>
+                    <div><label for="supply-ingredient">Principio activo</label><input class="form-control" id="supply-ingredient" maxlength="180"></div>
+                    <div><label for="supply-lot">Lote</label><input class="form-control" id="supply-lot" maxlength="80" required></div>
+                    <div><label for="supply-expiration">Vencimiento</label><input class="form-control" id="supply-expiration" type="date" required></div>
+                    <div><label for="supply-price">Precio por caja</label><input class="form-control" id="supply-price" type="number" min="0" step="0.01" required></div>
+                    <div><label for="supply-stock">Stock de cajas</label><input class="form-control" id="supply-stock" type="number" min="0" step="1" required></div>
+                    <div class="form-wide"><label for="supply-image">URL de imagen (opcional)</label><input class="form-control" id="supply-image" type="url"></div>
+                    <button class="btn btn-success" id="supply-submit" type="submit">Guardar insumo</button>
+                    <button class="btn btn-outline-secondary d-none" id="cancel-edit" type="button">Cancelar edición</button>
+                </form>
+            </div>
+            <p class="warehouse-message" id="inventory-message" role="status"></p>
+            <div class="d-flex justify-content-between align-items-end gap-2 py-3">
+                <div><h2>Inventario</h2><p class="section-caption mb-0">Existencias por producto y lote.</p></div>
+                <span class="result-count" id="supply-count"></span>
+            </div>
+            <div class="table-shell">
+                <table class="warehouse-table">
+                    <thead><tr><th>Insumo</th><th>Categoría</th><th>Lote / Vence</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody id="supplies-body"></tbody>
+                </table>
+            </div>
+        </section>
+        <section class="warehouse-section" id="requests-panel" role="tabpanel" hidden>
+            <h2>Solicitudes institucionales</h2>
+            <p class="section-caption">Confirma pagos para descontar stock; cancelar una solicitud pagada repone las cajas.</p>
+            <p class="warehouse-message" id="requests-message" role="status"></p>
+            <div class="table-shell">
+                <table class="warehouse-table">
+                    <thead><tr><th>Número</th><th>Institución</th><th>Fecha</th><th>Total</th><th>Detalle</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody id="requests-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+<script>
+const managerToken = localStorage.getItem('nexo-access-token');
+const money = value => `$${Number(value).toLocaleString('es-CL')}`;
+let supplies = [];
+let requests = [];
+let categories = [];
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[character]));
+}
+
+function decodeRole(token) {
+    try {
+        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(payload)).role;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function apiRequest(path, options = {}) {
+    const response = await fetch(path, {
+        ...options,
+        headers: {
+            Authorization: `Bearer ${managerToken}`,
+            ...(options.body ? {'Content-Type': 'application/json'} : {}),
+            ...options.headers
+        }
+    });
+    const payload = response.status === 204 ? null : await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const detail = payload?.detail || Object.values(payload || {}).flat().join(' ') || `Error ${response.status}`;
+        throw new Error(detail);
+    }
+    return payload;
+}
+
+function showMessage(id, message, isError = false) {
+    const target = document.querySelector(`#${id}`);
+    target.textContent = message;
+    target.style.color = isError ? 'var(--coral)' : 'var(--leaf)';
+}
+
+function renderCategories() {
+    const select = document.querySelector('#supply-category');
+    select.innerHTML = categories.map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join('');
+    if (!categories.length) select.innerHTML = '<option value="">Crea una categoría primero</option>';
+}
+
+function renderSupplies() {
+    document.querySelector('#supply-count').textContent = `${supplies.length} registros`;
+    const body = document.querySelector('#supplies-body');
+    if (!supplies.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty-row">Aún no hay insumos. Registra el primero en el formulario.</td></tr>';
+        return;
+    }
+    body.innerHTML = supplies.map(supply => `
+        <tr>
+            <td><strong>${escapeHtml(supply.commercial_name)}</strong><br><span class="text-secondary">${escapeHtml(supply.active_ingredient || 'Sin principio activo')}</span></td>
+            <td>${escapeHtml(supply.category_name)}</td>
+            <td>${escapeHtml(supply.lot)}<br><span class="text-secondary">${escapeHtml(supply.expiration_date)}</span></td>
+            <td>${money(supply.unit_price)}</td>
+            <td><span class="stock-chip">${supply.stock} cajas</span></td>
+            <td>${supply.is_active ? 'Activo' : 'Oculto'}</td>
+            <td><div class="row-actions"><button class="btn btn-outline-success" data-edit-supply="${supply.id}">Editar</button><button class="btn btn-outline-secondary" data-toggle-supply="${supply.id}" data-active="${supply.is_active}">${supply.is_active ? 'Ocultar' : 'Publicar'}</button></div></td>
+        </tr>`).join('');
+}
+
+function statusActions(order) {
+    if (order.status === 'pendiente') return '<button class="btn btn-success" data-order-status="pagado">Marcar pagado</button><button class="btn btn-outline-danger" data-order-status="cancelado">Cancelar</button>';
+    if (order.status === 'pagado') return '<button class="btn btn-outline-success" data-order-status="entregado">Marcar entregado</button><button class="btn btn-outline-danger" data-order-status="cancelado">Cancelar</button>';
+    return '<span class="text-secondary">Sin acciones</span>';
+}
+
+function renderRequests() {
+    const body = document.querySelector('#requests-body');
+    if (!requests.length) {
+        body.innerHTML = '<tr><td colspan="7" class="empty-row">No hay solicitudes registradas.</td></tr>';
+        return;
+    }
+    body.innerHTML = requests.map(order => `
+        <tr>
+            <td><strong>#${order.id}</strong></td>
+            <td>${escapeHtml(order.institution_name)}</td>
+            <td>${new Date(order.created_at).toLocaleDateString('es-CL')}</td>
+            <td>${money(order.total)}</td>
+            <td>${order.items.map(item => `${escapeHtml(item.supply_name)} × ${item.quantity}`).join('<br>')}</td>
+            <td><span class="status-chip status-${order.status}">${escapeHtml(order.status)}</span></td>
+            <td><div class="row-actions">${statusActions(order).replaceAll('data-order-status=', `data-order-id="${order.id}" data-order-status=`)}</div></td>
+        </tr>`).join('');
+}
+
+async function loadDashboard() {
+    const [loadedCategories, loadedSupplies, loadedRequests] = await Promise.all([
+        apiRequest('/api/categorias/'),
+        apiRequest('/api/insumos/'),
+        apiRequest('/api/solicitudes/')
+    ]);
+    categories = loadedCategories;
+    supplies = loadedSupplies;
+    requests = loadedRequests;
+    renderCategories();
+    renderSupplies();
+    renderRequests();
+}
+
+function clearSupplyForm() {
+    document.querySelector('#supply-form').reset();
+    document.querySelector('#supply-id').value = '';
+    document.querySelector('#supply-form-title').textContent = 'Registrar insumo';
+    document.querySelector('#supply-submit').textContent = 'Guardar insumo';
+    document.querySelector('#cancel-edit').classList.add('d-none');
+}
+
+document.querySelectorAll('[data-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+        document.querySelectorAll('[data-tab]').forEach(tab => tab.setAttribute('aria-selected', String(tab === button)));
+        document.querySelector('#inventory-panel').hidden = button.dataset.tab !== 'inventory';
+        document.querySelector('#requests-panel').hidden = button.dataset.tab !== 'requests';
+    });
+});
+
+document.querySelector('#category-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+        await apiRequest('/api/categorias/', {
+            method: 'POST',
+            body: JSON.stringify({name: document.querySelector('#category-name').value, description: document.querySelector('#category-description').value})
+        });
+        event.target.reset();
+        categories = await apiRequest('/api/categorias/');
+        renderCategories();
+        showMessage('inventory-message', 'Categoría creada.');
+    } catch (error) { showMessage('inventory-message', error.message, true); }
+});
+
+document.querySelector('#supply-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const supplyId = document.querySelector('#supply-id').value;
+    const payload = {
+        category: Number(document.querySelector('#supply-category').value),
+        commercial_name: document.querySelector('#supply-name').value,
+        active_ingredient: document.querySelector('#supply-ingredient').value,
+        lot: document.querySelector('#supply-lot').value,
+        expiration_date: document.querySelector('#supply-expiration').value,
+        unit_price: document.querySelector('#supply-price').value,
+        stock: Number(document.querySelector('#supply-stock').value),
+        image_url: document.querySelector('#supply-image').value,
+        is_active: true
+    };
+    try {
+        await apiRequest(supplyId ? `/api/insumos/${supplyId}/` : '/api/insumos/', {
+            method: supplyId ? 'PATCH' : 'POST', body: JSON.stringify(payload)
+        });
+        clearSupplyForm();
+        supplies = await apiRequest('/api/insumos/');
+        renderSupplies();
+        showMessage('inventory-message', supplyId ? 'Insumo actualizado.' : 'Insumo creado.');
+    } catch (error) { showMessage('inventory-message', error.message, true); }
+});
+
+document.querySelector('#cancel-edit').addEventListener('click', clearSupplyForm);
+document.querySelector('#supplies-body').addEventListener('click', async event => {
+    const editButton = event.target.closest('[data-edit-supply]');
+    const toggleButton = event.target.closest('[data-toggle-supply]');
+    if (editButton) {
+        const supply = supplies.find(item => item.id === Number(editButton.dataset.editSupply));
+        if (!supply) return;
+        document.querySelector('#supply-id').value = supply.id;
+        document.querySelector('#supply-category').value = supply.category;
+        document.querySelector('#supply-name').value = supply.commercial_name;
+        document.querySelector('#supply-ingredient').value = supply.active_ingredient;
+        document.querySelector('#supply-lot').value = supply.lot;
+        document.querySelector('#supply-expiration').value = supply.expiration_date;
+        document.querySelector('#supply-price').value = supply.unit_price;
+        document.querySelector('#supply-stock').value = supply.stock;
+        document.querySelector('#supply-image').value = supply.image_url;
+        document.querySelector('#supply-form-title').textContent = 'Editar insumo';
+        document.querySelector('#supply-submit').textContent = 'Guardar cambios';
+        document.querySelector('#cancel-edit').classList.remove('d-none');
+        document.querySelector('#supply-form').scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+    if (toggleButton) {
+        try {
+            await apiRequest(`/api/insumos/${toggleButton.dataset.toggleSupply}/`, {
+                method: 'PATCH', body: JSON.stringify({is_active: toggleButton.dataset.active !== 'true'})
+            });
+            supplies = await apiRequest('/api/insumos/');
+            renderSupplies();
+            showMessage('inventory-message', 'Visibilidad actualizada.');
+        } catch (error) { showMessage('inventory-message', error.message, true); }
+    }
+});
+
+document.querySelector('#requests-body').addEventListener('click', async event => {
+    const button = event.target.closest('[data-order-status]');
+    if (!button) return;
+    try {
+        await apiRequest(`/api/solicitudes/${button.dataset.orderId}/estado/`, {
+            method: 'PATCH', body: JSON.stringify({status: button.dataset.orderStatus})
+        });
+        requests = await apiRequest('/api/solicitudes/');
+        supplies = await apiRequest('/api/insumos/');
+        renderRequests();
+        renderSupplies();
+        showMessage('requests-message', `Solicitud #${button.dataset.orderId} actualizada.`);
+    } catch (error) { showMessage('requests-message', error.message, true); }
+});
+
+if (!managerToken || decodeRole(managerToken) !== 'gestor_bodega') {
+    document.querySelector('#access-warning').hidden = false;
+} else {
+    document.querySelector('#warehouse-app').hidden = false;
+    loadDashboard().catch(error => showMessage('inventory-message', error.message, true));
+}
+
+document.querySelector('#open-docs').addEventListener('click', async () => {
+    const button = document.querySelector('#open-docs');
+    button.disabled = true;
+    try {
+        const response = await fetch('/api/docs/session/', {
+            method: 'POST',
+            headers: {Authorization: `Bearer ${managerToken}`}
+        });
+        if (!response.ok) throw new Error('La sesión de administrador venció. Inicia sesión nuevamente.');
+        window.location.href = '/api/docs/';
+    } catch (error) {
+        showMessage('docs-message', error.message, true);
+        button.disabled = false;
+    }
+});
+</script>
+{% endblock %}

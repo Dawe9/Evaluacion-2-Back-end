@@ -1,0 +1,155 @@
+{% extends 'academic/base.html' %}
+{% block title %}Crear mi cuenta | Farmacia B2B{% endblock %}
+{% block content %}
+<style>
+    .register-shell {
+        background: #f3f4f1;
+        min-height: calc(100vh - 130px);
+        padding: 3.2rem 1rem;
+    }
+    .register-card {
+        max-width: 1100px;
+        margin: 0 auto;
+        background: transparent;
+    }
+    .register-header {
+        text-align: center;
+        margin-bottom: 2.3rem;
+    }
+    .register-header h1 {
+        font-size: clamp(2.1rem, 3vw, 3.2rem);
+        font-weight: 700;
+        color: #2b2f2e;
+        margin: 0;
+    }
+    .register-header p {
+        margin: 0.8rem auto 0;
+        font-size: 1.12rem;
+        color: #5f6d66;
+    }
+    .register-form {
+        background: rgba(255,255,255,0.18);
+        border-radius: 20px;
+    }
+    .register-form .field {
+        margin-bottom: 1.25rem;
+    }
+    .register-form label {
+        display: block;
+        margin: 0 0 0.52rem;
+        font-size: 0.95rem;
+        color: #2d4f42;
+        font-weight: 600;
+    }
+    .register-form .form-control {
+        width: 100%;
+        min-height: 52px;
+        border: 1px solid #d7ddd7;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.55);
+        color: #25332d;
+        padding: 0.8rem 1rem;
+        box-shadow: none;
+    }
+    .register-form .form-control:focus {
+        border-color: #4f8a70;
+        box-shadow: 0 0 0 0.2rem rgba(79, 138, 112, 0.12);
+    }
+    .register-form .actions {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.2rem;
+    }
+    .register-form .btn-success {
+        min-width: 220px;
+        min-height: 48px;
+        border-radius: 999px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+    .register-status {
+        text-align: center;
+        margin-top: 1rem;
+        min-height: 24px;
+        font-size: 0.96rem;
+    }
+    @media (max-width: 767.98px) {
+        .register-shell { padding-top: 2rem; }
+        .register-header { margin-bottom: 1.5rem; }
+    }
+</style>
+
+<div class="register-shell">
+    <div class="register-card">
+        <div class="register-header">
+            <h1>Crear mi cuenta</h1>
+            <p>Podrás acceder a ofertas exclusivas, compra más fácil y rápido.</p>
+        </div>
+
+        <form id="registration-form" class="register-form">
+            <div class="row g-3">
+                <div class="col-md-4 field">
+                    <label for="tax-id">RUT / identificador tributario</label>
+                    <input class="form-control" id="tax-id" maxlength="20" autocomplete="off" placeholder="Ingresa tu RUT">
+                </div>
+                <div class="col-md-4 field">
+                    <label for="username">Usuario</label>
+                    <input class="form-control" id="username" maxlength="150" required autocomplete="username" placeholder="Ingresa tu usuario">
+                </div>
+                <div class="col-md-4 field">
+                    <label for="email">Correo electrónico</label>
+                    <input class="form-control" id="email" type="email" required autocomplete="email" placeholder="Ingresa tu correo electrónico">
+                </div>
+
+                <div class="col-md-4 field">
+                    <label for="password">Contraseña</label>
+                    <input class="form-control" id="password" type="password" minlength="8" required autocomplete="new-password" placeholder="Ingresa tu contraseña">
+                </div>
+                <div class="col-md-4 field">
+                    <label for="password-confirm">Confirmar contraseña</label>
+                    <input class="form-control" id="password-confirm" type="password" minlength="8" required autocomplete="new-password" placeholder="Reingresa tu contraseña">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-success" type="submit">Crear cuenta</button>
+            </div>
+            <p id="registration-status" class="register-status" role="status"></p>
+            <p class="text-center mt-3 mb-0 text-secondary">¿Ya tienes cuenta? <a href="/login/">Ingresar</a></p>
+        </form>
+    </div>
+</div>
+
+<script>
+document.querySelector('#registration-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const status = document.querySelector('#registration-status');
+    status.className = 'register-status text-secondary';
+    status.textContent = 'Creando cuenta...';
+
+    const response = await fetch('/api/registro/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            institution_name: 'Institución médica',
+            tax_id: document.querySelector('#tax-id').value,
+            username: document.querySelector('#username').value,
+            email: document.querySelector('#email').value,
+            password: document.querySelector('#password').value,
+            password_confirm: document.querySelector('#password-confirm').value
+        })
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+        status.className = 'register-status text-danger';
+        status.textContent = Object.values(payload).flat().join(' ');
+        return;
+    }
+
+    status.className = 'register-status text-success';
+    status.textContent = payload.detail;
+    window.setTimeout(() => { window.location.href = '/login/'; }, 1200);
+});
+</script>
+{% endblock %}

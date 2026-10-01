@@ -1,16 +1,18 @@
-"""Configuración principal del proyecto Django para la tienda académica."""
+"""Configuración principal del proyecto Django para la farmacia B2B."""
 
+import os
 from datetime import timedelta
 from pathlib import Path
-from datetime import timedelta
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Configuración básica para desarrollo local.
-SECRET_KEY = 'django-insecure-academic-evaluation'
-DEBUG = False
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+# La configuración sensible y los datos personales se reciben desde el entorno.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-change-me-for-local-development')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() == 'true'
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
+STUDENT_NAME = os.environ.get('STUDENT_NAME', 'Completar nombre del estudiante')
+STUDENT_SECTION = os.environ.get('STUDENT_SECTION', 'Completar sección')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -49,6 +51,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'academic.context_processors.evaluation_footer',
             ],
         },
     },
@@ -56,11 +59,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'academic_project.wsgi.application'
 
+DATABASE_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
+DATABASE_NAME = os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3'))
+if DATABASE_ENGINE == 'django.db.backends.postgresql':
+    DATABASE_NAME = os.environ.get('DB_NAME', 'farmacia_b2b')
+
 DATABASES = {
-    # Los endpoints usan JSON; SQLite solo mantiene la estructura de modelos.
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': DATABASE_ENGINE,
+        'NAME': DATABASE_NAME,
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -69,7 +80,7 @@ LANGUAGE_CODE = 'es-cl'
 TIME_ZONE = 'America/Santiago'
 USE_I18N = True
 USE_TZ = True
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
@@ -92,8 +103,8 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Academic Store API',
-    'DESCRIPTION': 'API para consultar productos y gestionar órdenes de la tienda académica.',
+    'TITLE': 'Farmacia B2B API',
+    'DESCRIPTION': 'API para catálogo, abastecimiento institucional e inventario farmacéutico.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SECURITY': [{'bearerAuth': []}],

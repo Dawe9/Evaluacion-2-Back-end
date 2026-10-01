@@ -3,9 +3,11 @@
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.permissions import IsAdminUser
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from academic import views
+from academic.authentication import RoleTokenObtainPairView
 
 urlpatterns = [
     # Panel de administración opcional de Django.
@@ -15,14 +17,25 @@ urlpatterns = [
     path('products/', views.products_page, name='products'),
     path('cart/', views.cart_page, name='cart'),
     path('login/', views.login_page, name='login'),
-    path('api/cart/', views.cart_api, name='cart-api'),
+    path('register/', views.register_page, name='register'),
+    path('gestor/', views.warehouse_dashboard_page, name='warehouse-dashboard'),
+    path('api/cart/', views.MedicalCartView.as_view(), name='cart-api-legacy-alias'),
     # Endpoints para autenticación JWT.
-    path('api/token/', TokenObtainPairView.as_view(), name='token-obtain-pair'),
+    path('api/token/', RoleTokenObtainPairView.as_view(), name='token-obtain-pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('doc/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui-short'),
-    # Todas las rutas REST comienzan con /api/.
+    path('api/docs/session/', views.DocumentationSessionView.as_view(), name='docs-session'),
+    path('api/schema/', SpectacularAPIView.as_view(permission_classes=[IsAdminUser]), name='schema'),
+    path(
+        'api/docs/',
+        SpectacularSwaggerView.as_view(url_name='schema', permission_classes=[IsAdminUser]),
+        name='swagger-ui',
+    ),
+    path(
+        'doc/',
+        SpectacularSwaggerView.as_view(url_name='schema', permission_classes=[IsAdminUser]),
+        name='swagger-ui-short',
+    ),
+    # La API separa lectura pública, clientes institucionales y gestión de bodega.
     path('api/', include('academic.urls')),
 ]
 

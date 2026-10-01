@@ -5,6 +5,10 @@ venv/
 .venv/
 env/
 .env
+.env.*
 db.sqlite3
+*.sqlite3
 *.log
 .vscode/
+.DS_Store
+Thumbs.db

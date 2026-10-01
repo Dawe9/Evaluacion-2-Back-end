@@ -1,25 +1,19 @@
-"""Filtros reutilizables para buscar productos en la tienda."""
+"""Filtros públicos para explorar el catálogo de insumos médicos."""
 
 import django_filters
 
-from .models import Product
+from .models import MedicalSupply, SupplyCategory
 
 
-class ProductFilter(django_filters.FilterSet):
-    """Valida los filtros disponibles para el catálogo JSON."""
-
-    # Permite filtrar por categoría siguiendo los valores del modelo Product.
-    category = django_filters.ChoiceFilter(
-        choices=Product.CATEGORY_CHOICES,
-    )
-
-    # Filtros de rango para el precio mínimo y máximo del producto.
-    min_price = django_filters.NumberFilter(field_name='price', lookup_expr='gte')
-    max_price = django_filters.NumberFilter(field_name='price', lookup_expr='lte')
-
-    # Búsqueda parcial y no sensible a mayúsculas/minúsculas por nombre.
-    name = django_filters.CharFilter(lookup_expr='icontains')
+class MedicalSupplyFilter(django_filters.FilterSet):
+    category = django_filters.ModelChoiceFilter(queryset=SupplyCategory.objects.all())
+    category_name = django_filters.CharFilter(field_name='category__name', lookup_expr='icontains')
+    price_min = django_filters.NumberFilter(field_name='unit_price', lookup_expr='gte')
+    price_max = django_filters.NumberFilter(field_name='unit_price', lookup_expr='lte')
+    active_ingredient = django_filters.CharFilter(lookup_expr='icontains')
+    expiration_before = django_filters.DateFilter(field_name='expiration_date', lookup_expr='lte')
+    expiration_after = django_filters.DateFilter(field_name='expiration_date', lookup_expr='gte')
 
     class Meta:
-        model = Product
-        fields = ['category', 'min_price', 'max_price', 'name']
+        model = MedicalSupply
+        fields = ['category', 'category_name', 'price_min', 'price_max', 'active_ingredient']

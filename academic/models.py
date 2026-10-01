@@ -1,78 +1,123 @@
-"""Modelos principales de la tienda académica.
-
-Estos modelos representan el catálogo de productos y las compras realizadas
-por los clientes. La lógica de negocio se apoya en estos modelos para validar
-las categorías, precios y estados de cada pedido.
-"""
+"""Entidades relacionales para el abastecimiento B2B de insumos médicos."""
 
 from django.contrib.auth.models import User
 from django.db import models
 
 
-class Tenant(models.Model):
-    """Espacio aislado para un cliente u organización dentro del SaaS."""
+class Institution(models.Model):
+    """Institución médica cliente de la bodega farmacéutica."""
 
-    name = models.CharField(max_length=150, unique=True)
-    slug = models.SlugField(max_length=150, unique=True)
-    display_name = models.CharField(max_length=150, blank=True)
-    primary_color = models.CharField(max_length=7, default='#2f6042')
-    created_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=180, unique=True)
+    tax_id = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
-        return self.display_name or self.name
-
-
-class Profile(models.Model):
-    """Perfil que vincula una cuenta, su tenant y su carrito persistente."""
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    tenant = models.ForeignKey('Tenant', on_delete=models.SET_NULL, null=True, blank=True, related_name='profiles')
-    cart = models.JSONField(default=list)
-
-    def __str__(self):
-        return f'{self.user.username} ({self.tenant.name if self.tenant else "sin tenant"})'
-
-
-class Product(models.Model):
-    """Producto disponible para la compra dentro de un tenant."""
-
-    # Categorías usadas en la tienda para agrupar los productos por experiencia.
-    CATEGORY_CHOICES = [
-        ('Cordillera', 'Cordillera'),
-        ('Aventura', 'Aventura'),
-        ('Costa', 'Costa'),
-        ('Cultura', 'Cultura'),
-    ]
-
-    tenant = models.ForeignKey('Tenant', on_delete=models.CASCADE, related_name='products', null=True, blank=True)
-    catalog_id = models.PositiveIntegerField(null=True, blank=True, unique=True)
-    # Datos básicos del producto: nombre, descripción, precio, stock y tipo.
-    name = models.CharField(max_length=150)
-    description = models.TextField()
-    price = models.PositiveIntegerField()
-    stock = models.PositiveIntegerField()
-    category = models.CharField(max_length=80, choices=CATEGORY_CHOICES)
-
-    def __str__(self):
-        # Muestra el nombre del producto en el administrador y otros formularios.
         return self.name
 
 
-class Order(models.Model):
-    """Compra confirmada que pertenece al tenant del usuario que la crea."""
+class Profile(models.Model):
+    """Rol e institución asociados a una cuenta autenticada."""
 
-    # Estados por los que puede pasar una orden desde su creación hasta la entrega.
-    STATUS_CHOICES = [
-        ('recibida', 'Recibida'),
-        ('preparando', 'Preparando'),
-        ('enviada', 'Enviada'),
-        ('entregada', 'Entregada'),
-        ('cancelada', 'Cancelada'),
-    ]
+    class Role(models.TextChoices):
+        MEDICAL_INSTITUTION = 'institucion_medica', 'Institución médica'
+        WAREHOUSE_MANAGER = 'gestor_bodega', 'Gestor de bodega'
 
-    tenant = models.ForeignKey('Tenant', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
-    customer_name = models.CharField(max_length=150)
-    customer_email = models.EmailField()
-    items = models.JSONField()
-    total = models.PositiveIntegerField()
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='recibida')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=30, choices=Role.choices, default=Role.MEDICAL_INSTITUTION)
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='profiles',
+    )
+
+    def __str__(self):
+        return f'{self.user.username} ({self.get_role_display()})'
+
+
+class SupplyCategory(models.Model):
+    """Categoría de inventario, por ejemplo medicamentos o material quirúrgico."""
+
+    name = models.CharField(max_length=120, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class MedicalSupply(models.Model):
+    """Insumo comercializado por lote, con vencimiento y stock de cajas."""
+
+    category = models.ForeignKey(SupplyCategory, on_delete=models.PROTECT, related_name='supplies')
+    commercial_name = models.CharField(max_length=180)
+    active_ingredient = models.CharField(max_length=180, blank=True)
+    lot = models.CharField(max_length=80)
+    expiration_date = models.DateField()
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    image_url = models.URLField(blank=True)
+    stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['lot', 'commercial_name'], name='unique_supply_lot_name'),
+        ]
+        ordering = ['commercial_name', 'expiration_date']
+
+    def __str__(self):
+        return f'{self.commercial_name} ({self.lot})'
+
+
+class Cart(models.Model):
+    """Carro persistente 1:1 del usuario, independiente de su sesión."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='medical_cart')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Carro de {self.user.username}'
+
+
+class CartItem(models.Model):
+    """Cantidad de un insumo dentro del carro; nunca reserva inventario."""
+
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    supply = models.ForeignKey(MedicalSupply, on_delete=models.PROTECT, related_name='cart_items')
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['cart', 'supply'], name='unique_supply_per_cart'),
+        ]
+
+
+class PurchaseRequest(models.Model):
+    """Solicitud histórica con estados explícitos para su ciclo transaccional."""
+
+    class Status(models.TextChoices):
+        PENDING = 'pendiente', 'Pendiente'
+        PAID = 'pagado', 'Pagado'
+        DELIVERED = 'entregado', 'Entregado'
+        CANCELLED = 'cancelado', 'Cancelado'
+
+    institution = models.ForeignKey(Institution, on_delete=models.PROTECT, related_name='requests')
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='purchase_requests')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class PurchaseRequestItem(models.Model):
+    """Detalle que conserva nombre, lote y precio vigentes al confirmar."""
+
+    request = models.ForeignKey(PurchaseRequest, on_delete=models.CASCADE, related_name='items')
+    supply = models.ForeignKey(MedicalSupply, on_delete=models.PROTECT, related_name='request_items')
+    supply_name = models.CharField(max_length=180)
+    lot = models.CharField(max_length=80)
+    quantity = models.PositiveIntegerField()
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    @property
+    def subtotal(self):
+        return self.unit_price * self.quantity

@@ -1,81 +1,191 @@
 {% extends 'academic/base.html' %}
-{% block title %}Tours | Cruzattour{% endblock %}
+{% block title %}Catálogo de Insumos | Botica Institucional{% endblock %}
 {% block content %}
-<section class="hero py-5 mb-4">
-    <div class="container">
-        <p class="text-uppercase small mb-2" data-tenant-name>Cruzattour</p>
-        <h1 class="display-6 fw-bold">Nuestros tours</h1>
-        <p class="lead mb-0">Elige tu proxima experiencia por Chile.</p>
+<style>
+    .catalog-wrap { max-width: 1280px; }
+    .catalog-crumb { color: var(--muted); font-size: .76rem; }
+    .collection-head { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding: 2.5rem 0 1.8rem; border-bottom: 1px solid var(--line); }
+    .collection-kicker { color: var(--leaf); font-size: .7rem; font-weight: 700; letter-spacing: .12em; }
+    .collection-head h1 { margin: .45rem 0 .55rem; font-size: 2.55rem; }
+    .collection-head p { max-width: 620px; margin: 0; color: var(--muted); }
+    .collection-note { max-width: 210px; border-left: 2px solid var(--lime); padding: .25rem 0 .25rem .85rem; color: var(--muted); font-size: .78rem; }
+    .catalog-filters { display: grid; grid-template-columns: minmax(220px, 1.6fr) minmax(150px, 1fr) minmax(115px, .7fr) minmax(115px, .7fr) auto; align-items: end; gap: .65rem; padding: 1.2rem 0; border-bottom: 1px solid var(--line); }
+    .catalog-filters label { display: block; margin-bottom: .35rem; color: #506057; font-size: .7rem; font-weight: 600; }
+    .catalog-filters .btn { min-height: 44px; white-space: nowrap; }
+    .catalog-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 0 .85rem; }
+    .result-count { font-size: .8rem; color: var(--muted); }
+    .sort-control { display: flex; align-items: center; gap: .5rem; color: var(--muted); font-size: .76rem; }
+    .sort-control .form-select { min-height: 38px; width: 180px; font-size: .78rem; }
+    .supply-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; padding-bottom: 4rem; }
+    .supply-card { min-width: 0; background: #fff; border: 1px solid var(--line); transition: border-color .18s, transform .18s; }
+    .supply-card:hover { border-color: #aabcae; transform: translateY(-2px); }
+    .supply-photo { position: relative; aspect-ratio: 1 / .88; overflow: hidden; background: #eaf0e9; }
+    .supply-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s; }
+    .supply-card:hover .supply-photo img { transform: scale(1.035); }
+    .photo-fallback { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; color: var(--pine); font-size: 3.2rem; background: radial-gradient(circle at 50% 45%, #fff 0 9%, transparent 9.5%), linear-gradient(135deg, #e6efe4, #d5e6da); }
+    .supply-photo.image-missing .photo-fallback { display: flex; }
+    .supply-photo.image-missing img { display: none; }
+    .supply-stock { position: absolute; left: .65rem; top: .65rem; padding: .27rem .45rem; background: rgba(255,255,255,.94); color: var(--pine); font-size: .64rem; font-weight: 700; }
+    .supply-info { padding: .9rem .9rem 1rem; }
+    .supply-brand { color: var(--leaf); font-size: .66rem; font-weight: 700; text-transform: uppercase; }
+    .supply-title { min-height: 2.8rem; margin: .3rem 0 .35rem; font-family: 'DM Sans', sans-serif; font-size: .95rem; line-height: 1.4; font-weight: 600; }
+    .supply-detail { min-height: 2.5rem; color: var(--muted); font-size: .7rem; line-height: 1.5; }
+    .supply-lot { display: flex; justify-content: space-between; gap: .5rem; border-top: 1px solid #edf0eb; margin-top: .7rem; padding-top: .55rem; color: var(--muted); font-size: .67rem; }
+    .supply-buy { display: flex; align-items: end; justify-content: space-between; gap: .5rem; margin-top: .9rem; }
+    .supply-price { color: var(--ink); font-size: 1.2rem; font-weight: 700; white-space: nowrap; }
+    .supply-buy .btn { min-height: 38px; padding: .45rem .65rem; font-size: .72rem; white-space: nowrap; }
+    .catalog-empty { grid-column: 1 / -1; padding: 3.5rem 1rem; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); }
+    .catalog-live { min-height: 1.5rem; color: var(--leaf); font-size: .78rem; }
+    @media (max-width: 991.98px) { .supply-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .catalog-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filter-search { grid-column: 1 / -1; } }
+    @media (max-width: 640px) { .collection-head { display: block; padding: 1.75rem 0 1.3rem; } .collection-head h1 { font-size: 1.85rem; } .collection-note { margin-top: 1rem; } .catalog-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; } .catalog-filters .btn { width: 100%; } .supply-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; } .supply-info { padding: .7rem; } .supply-title { font-size: .84rem; min-height: 2.4rem; } .supply-detail { font-size: .66rem; } .supply-buy { display: block; } .supply-buy .btn { width: 100%; margin-top: .6rem; } .supply-price { font-size: 1.05rem; } .catalog-toolbar { align-items: flex-start; gap: .5rem; } .sort-control { display: block; text-align: right; } .sort-control label { display: block; margin-bottom: .2rem; } .sort-control .form-select { width: 145px; } }
+</style>
+<div class="container catalog-wrap">
+    <div class="catalog-crumb pt-4">Inicio <span class="mx-2">/</span> Catálogo</div>
+    <header class="collection-head">
+        <div>
+            <span class="collection-kicker">FARMACIA · ABASTECIMIENTO B2B</span>
+            <h1>Medicamentos e insumos</h1>
+            <p>Encuentra productos por categoría, principio activo o lote. Cada ficha muestra la trazabilidad y disponibilidad de bodega.</p>
+        </div>
+        <div class="collection-note">Precios por caja · Stock validado al confirmar pago</div>
+    </header>
+    <form class="catalog-filters" id="filter-form">
+        <div class="filter-search">
+            <label for="search-input">Buscar en el catálogo</label>
+            <input class="form-control" id="search-input" name="search" type="search" placeholder="Nombre, principio activo o lote">
+        </div>
+        <div>
+            <label for="category-filter">Categoría</label>
+            <select class="form-select" id="category-filter" name="category"><option value="">Todas las categorías</option></select>
+        </div>
+        <div>
+            <label for="min-price">Precio desde</label>
+            <input class="form-control" id="min-price" name="price_min" type="number" min="0" placeholder="$ mínimo">
+        </div>
+        <div>
+            <label for="max-price">Precio hasta</label>
+            <input class="form-control" id="max-price" name="price_max" type="number" min="0" placeholder="$ máximo">
+        </div>
+        <button class="btn btn-success" type="submit">Filtrar</button>
+    </form>
+    <div class="catalog-toolbar">
+        <span class="result-count" id="result-count" aria-live="polite">Cargando catálogo...</span>
+        <div class="sort-control">
+            <label for="sort-select">Ordenar por</label>
+            <select class="form-select" id="sort-select">
+                <option value="commercial_name">Nombre</option>
+                <option value="unit_price">Menor precio</option>
+                <option value="-unit_price">Mayor precio</option>
+                <option value="expiration_date">Vencimiento próximo</option>
+            </select>
+        </div>
     </div>
-</section>
-<div class="container pb-5">
-    <div id="status" class="alert alert-info">Cargando productos...</div>
-    <div id="products-grid" class="row g-4"></div>
+    <div class="catalog-live" id="catalog-live" role="status" aria-live="polite"></div>
+    <section class="supply-grid" id="products-grid" aria-label="Insumos disponibles"></section>
 </div>
 <script>
+const fallbackImage = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80';
 const money = value => `$${Number(value).toLocaleString('es-CL')}`;
-const cart = JSON.parse(localStorage.getItem('nexo-cart') || '[]');
 
-async function persistCartToServer(items) {
-    const token = localStorage.getItem('nexo-access-token');
-    if (!token) return;
-    try {
-        await fetch('/api/cart/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ cart: items })
-        });
-    } catch (error) {
-        console.warn('No se pudo guardar el carrito en el servidor:', error);
-    }
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[character]));
 }
 
-function updateCartCount() {
-    document.querySelector('#cart-count').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
-}
-
-function addToCart(product) {
+async function addToCart(supplyId, button) {
     const token = localStorage.getItem('nexo-access-token');
     if (!token) {
         window.location.href = '/login/?next=/products/';
         return;
     }
-    const existing = cart.find(item => item.id === product.id);
-    if (existing) existing.quantity += 1;
-    else cart.push({id: product.id, name: product.name, price: product.price, quantity: 1});
-    localStorage.setItem('nexo-cart', JSON.stringify(cart));
-    persistCartToServer(cart);
-    updateCartCount();
+    button.disabled = true;
+    const response = await fetch('/api/carro-insumos/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+        body: JSON.stringify({supply_id: supplyId, quantity: 1, increment: true})
+    });
+    if (!response.ok) {
+        document.querySelector('#catalog-live').textContent = 'No fue posible agregar el insumo. Revisa tu perfil institucional.';
+        button.disabled = false;
+        return;
+    }
+    const cart = await response.json();
+    localStorage.setItem('nexo-cart', JSON.stringify(cart.items));
+    document.querySelector('#cart-count').textContent = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    document.querySelector('#catalog-live').textContent = 'Insumo agregado a tu solicitud.';
+    button.textContent = 'Agregado';
+    window.setTimeout(() => { button.textContent = 'Agregar'; button.disabled = false; }, 1100);
+}
+
+function renderProducts(supplies) {
+    const grid = document.querySelector('#products-grid');
+    if (!supplies.length) {
+        grid.innerHTML = '<div class="catalog-empty"><strong>No encontramos insumos con esos filtros.</strong><br><span>Prueba otra categoría o elimina el rango de precio.</span></div>';
+        return;
+    }
+    grid.innerHTML = supplies.map(supply => `
+        <article class="supply-card">
+            <div class="supply-photo">
+                <img src="${escapeHtml(supply.image_url || fallbackImage)}" alt="${escapeHtml(supply.commercial_name)}" loading="lazy">
+                <span class="photo-fallback" aria-hidden="true">+</span>
+                <span class="supply-stock">${supply.stock > 0 ? `${supply.stock} cajas disponibles` : 'Sin stock'}</span>
+            </div>
+            <div class="supply-info">
+                <span class="supply-brand">${escapeHtml(supply.category_name)}</span>
+                <h2 class="supply-title">${escapeHtml(supply.commercial_name)}</h2>
+                <div class="supply-detail">${escapeHtml(supply.active_ingredient || 'Principio activo no informado')}</div>
+                <div class="supply-lot"><span>Lote ${escapeHtml(supply.lot)}</span><span>Vence ${escapeHtml(supply.expiration_date)}</span></div>
+                <div class="supply-buy">
+                    <strong class="supply-price">${money(supply.unit_price)}</strong>
+                    <button class="btn btn-success" data-supply-id="${supply.id}" ${supply.stock < 1 ? 'disabled' : ''}>Agregar</button>
+                </div>
+            </div>
+        </article>`).join('');
+    grid.querySelectorAll('.supply-photo img').forEach(image => {
+        image.addEventListener('error', () => image.parentElement.classList.add('image-missing'), {once: true});
+    });
+}
+
+async function loadCategories() {
+    const response = await fetch('/api/categorias/');
+    if (!response.ok) return;
+    const categories = await response.json();
+    document.querySelector('#category-filter').insertAdjacentHTML(
+        'beforeend',
+        categories.map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join('')
+    );
 }
 
 async function loadProducts() {
-    const response = await fetch('/api/products/');
-    if (!response.ok) throw new Error('No se pudo cargar el catalogo');
-    const products = await response.json();
-    document.querySelector('#products-grid').innerHTML = products.map(product => `
-        <div class="col-md-6 col-lg-3">
-            <article class="card product-card h-100 shadow-sm">
-                <div class="product-mark">${product.category === 'Cordillera' ? '⛰' : product.category === 'Costa' ? '🌊' : product.category === 'Cultura' ? '📖' : '🧭'}</div>
-                <div class="card-body d-flex flex-column">
-                    <span class="text-success small fw-semibold">${product.category}</span>
-                    <h2 class="h5 mt-2">${product.name}</h2>
-                    <p class="text-secondary small flex-grow-1">${product.description}</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <strong class="fs-5">${money(product.price)}</strong>
-                        <small class="text-secondary">${product.stock} disponibles</small>
-                    </div>
-                    <button class="btn btn-success w-100" onclick='addToCart(${JSON.stringify(product)})' ${product.stock === 0 ? 'disabled' : ''}>Agregar tour</button>
-                </div>
-            </article>
-        </div>`).join('');
-    document.querySelector('#status').className = 'alert alert-success';
-    document.querySelector('#status').textContent = `${products.length} tours disponibles`;
+    const params = new URLSearchParams();
+    const formData = new FormData(document.querySelector('#filter-form'));
+    for (const key of ['search', 'category', 'price_min', 'price_max']) {
+        const value = formData.get(key)?.toString().trim();
+        if (value) params.set(key, value);
+    }
+    params.set('ordering', document.querySelector('#sort-select').value);
+    const response = await fetch(`/api/insumos/?${params.toString()}`);
+    if (!response.ok) throw new Error('No se pudo cargar el catálogo. Intenta nuevamente.');
+    const supplies = await response.json();
+    renderProducts(supplies);
+    document.querySelector('#result-count').textContent = `${supplies.length} ${supplies.length === 1 ? 'insumo encontrado' : 'insumos encontrados'}`;
 }
 
-updateCartCount();
+document.querySelector('#products-grid').addEventListener('click', event => {
+    const button = event.target.closest('[data-supply-id]');
+    if (button) addToCart(Number(button.dataset.supplyId), button);
+});
+document.querySelector('#filter-form').addEventListener('submit', event => {
+    event.preventDefault();
+    loadProducts().catch(error => { document.querySelector('#catalog-live').textContent = error.message; });
+});
+document.querySelector('#sort-select').addEventListener('change', () => {
+    loadProducts().catch(error => { document.querySelector('#catalog-live').textContent = error.message; });
+});
+
+loadCategories().catch(() => {});
 loadProducts().catch(error => {
-    document.querySelector('#status').className = 'alert alert-danger';
-    document.querySelector('#status').textContent = error.message;
+    document.querySelector('#result-count').textContent = 'Catálogo no disponible';
+    document.querySelector('#catalog-live').textContent = error.message;
 });
 </script>
 {% endblock %}

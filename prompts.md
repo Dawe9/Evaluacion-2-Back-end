@@ -74,3 +74,11 @@ Se evita inventar conversaciones: el contenido a continuacion refleja el trabajo
 - Prompt exacto: "actualiza los comentarios y el archivo propts"
 - Para que se utilizo: mantener la documentación del código alineada con el flujo actual de perfiles, carritos persistentes y tenants.
 - Resumen de la respuesta aplicada: se actualizaron los docstrings y comentarios de `academic/models.py`, `academic/views.py` y `academic/tests.py`, y se agregaron al registro los prompts de SaaS, pruebas manuales y documentación.
+
+## Prompt 10: revisar y alinear comentarios del proyecto
+
+- Fecha: 2026-10-01
+- Herramienta: VS Code editor / documentación del proyecto
+- Prompt exacto: "actualiza los comentarios del proyecto"
+- Para que se utilizo: revisar la documentación de alto nivel y los comentarios del sistema para reflejar el proyecto actual de farmacia B2B, no la versión académica previa.
+- Resumen de la respuesta aplicada: se actualizó la descripción del README para resumir la plataforma actual, se corrigió la estructura de documentación y se dejó el registro de prompts en línea con la evolución del proyecto.

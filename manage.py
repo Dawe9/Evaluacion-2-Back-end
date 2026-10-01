@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""Utilidad de administración de Django para el proyecto de farmacia B2B."""
 import os
 import sys
 
 
 def main():
-    """Run administrative tasks."""
-    # Este modulo permite ejecutar comandos como check, test y runserver.
+    """Ejecuta tareas administrativas del proyecto."""
+    # Este módulo permite ejecutar comandos como check, test y runserver.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'academic_project.settings')
     try:
         from django.core.management import execute_from_command_line

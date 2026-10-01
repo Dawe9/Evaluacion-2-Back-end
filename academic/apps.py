@@ -1,4 +1,4 @@
-"""Configuración de la aplicación Django de la tienda."""
+"""Configuración de la aplicación Django de farmacia B2B."""
 
 from django.apps import AppConfig
 

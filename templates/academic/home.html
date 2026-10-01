@@ -1,34 +1,91 @@
 {% extends 'academic/base.html' %}
-{% block title %}Cruzattour | Turismo en Chile{% endblock %}
+{% block title %}Abastecimiento B2B | Botica Institucional{% endblock %}
 {% block content %}
-<section class="hero py-5">
-    <div class="container py-4">
-        <p class="text-uppercase small mb-2"><span data-tenant-name>Cruzattour</span> | Turismo y experiencias en Chile</p>
-        <h1 class="display-5 fw-bold">Descubre Chile con nosotros.</h1>
-        <p class="lead mb-4">Tours panoramicos, experiencias y paisajes inolvidables.</p>
-        <a class="btn btn-light btn-lg" href="/products/">Ver nuestros tours</a>
+<style>
+    .home-hero { position: relative; min-height: 390px; display: flex; align-items: center; isolation: isolate; color: #fff; background: #174b3f url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=2000&q=85') center 42% / cover no-repeat; }
+    .home-hero::before { content: ''; position: absolute; z-index: -1; inset: 0; background: rgba(12, 47, 39, .66); }
+    .home-hero-content { width: min(100% - 2rem, 1280px); margin: 0 auto; padding: 3rem 0; }
+    .home-eyebrow { color: #d8e8a0; font-size: .72rem; font-weight: 700; letter-spacing: .12em; }
+    .home-hero h1 { max-width: 660px; margin: .8rem 0 1rem; font-size: 2.9rem; line-height: 1.08; }
+    .home-hero p { max-width: 530px; color: #edf3ed; font-size: 1.03rem; }
+    .home-hero .btn { border-radius: 2px; padding: .75rem 1.1rem; font-weight: 600; }
+    .home-wrap { max-width: 1280px; }
+    .home-assurance { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 1.35rem 0; border-bottom: 1px solid var(--line); }
+    .assurance-item { display: flex; align-items: center; gap: .7rem; color: #43534a; font-size: .8rem; }
+    .assurance-mark { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; background: #e5edd5; color: var(--pine); font-weight: 700; }
+    .home-section { padding: 2.5rem 0; }
+    .home-section-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1.1rem; }
+    .home-section-head h2 { margin: 0; font-size: 1.9rem; }
+    .home-section-head p { margin: .25rem 0 0; color: var(--muted); font-size: .83rem; }
+    .home-section-head a { color: var(--pine); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+    .category-list { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .category-link { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.05rem .9rem; color: var(--ink); text-decoration: none; border-right: 1px solid var(--line); }
+    .category-link:last-child { border-right: 0; }
+    .category-link:hover { background: #edf2e9; color: var(--pine); }
+    .category-link strong { font-size: .9rem; }
+    .category-link span { color: var(--muted); font-size: .72rem; }
+    .featured-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }
+    .featured-item { min-width: 0; background: #fff; border: 1px solid var(--line); }
+    .featured-item img { width: 100%; aspect-ratio: 1.2; object-fit: cover; display: block; background: #e6efe4; }
+    .featured-copy { padding: .8rem; }
+    .featured-copy small { color: var(--leaf); font-size: .65rem; font-weight: 700; text-transform: uppercase; }
+    .featured-copy h3 { min-height: 2.6rem; margin: .3rem 0 .5rem; font-family: 'DM Sans', sans-serif; font-size: .86rem; font-weight: 600; line-height: 1.4; }
+    .featured-copy strong { font-size: 1rem; }
+    .home-empty { padding: 1.5rem; border: 1px solid var(--line); background: #fff; color: var(--muted); }
+    @media (max-width: 760px) { .home-hero { min-height: 360px; background-position: 58% center; } .home-hero h1 { font-size: 2.2rem; } .home-assurance { grid-template-columns: 1fr; gap: .8rem; } .category-list { grid-template-columns: 1fr; } .category-link { border-right: 0; border-bottom: 1px solid var(--line); } .category-link:last-child { border-bottom: 0; } .featured-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; } .home-section-head h2 { font-size: 1.55rem; } }
+</style>
+<section class="home-hero">
+    <div class="home-hero-content">
+        <span class="home-eyebrow">ABASTECIMIENTO PARA INSTITUCIONES DE SALUD</span>
+        <h1>Lo esencial para cuidar, en un solo lugar.</h1>
+        <p>Explora medicamentos e insumos con información de lote, vencimiento y disponibilidad de bodega.</p>
+        <a class="btn btn-light" href="/products/">Explorar catálogo <span aria-hidden="true">→</span></a>
     </div>
 </section>
-<section class="container py-5">
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <h2 class="h4">Tours para todos</h2>
-                    <p class="text-secondary">Cordillera, costa, cultura y aventura en un solo catalogo.</p>
-                    <a class="btn btn-success" href="/products/">Ver tours</a>
-                </div>
-            </div>
+<div class="container home-wrap">
+    <section class="home-assurance" aria-label="Información de servicio">
+        <div class="assurance-item"><span class="assurance-mark" aria-hidden="true">✓</span><span>Catálogo por categorías y principio activo</span></div>
+        <div class="assurance-item"><span class="assurance-mark" aria-hidden="true">↗</span><span>Trazabilidad visible por lote y vencimiento</span></div>
+        <div class="assurance-item"><span class="assurance-mark" aria-hidden="true">+</span><span>Stock validado al confirmar el pago</span></div>
+    </section>
+    <section class="home-section">
+        <header class="home-section-head">
+            <div><h2>Explora por categoría</h2><p>Encuentra rápidamente lo que necesita tu institución.</p></div>
+            <a href="/products/">Ver todo el catálogo →</a>
+        </header>
+        {% if catalog_database_unavailable %}
+        <div class="home-empty">No se pudo conectar con el catálogo. Revisa la conexión a la base de datos.</div>
+        {% elif categories %}
+        <nav class="category-list" aria-label="Categorías de insumos">
+            {% for category in categories %}
+            <a class="category-link" href="/products/?category={{ category.id }}">
+                <strong>{{ category.name }}</strong><span>{{ category.available_count }} disponibles →</span>
+            </a>
+            {% endfor %}
+        </nav>
+        {% else %}
+        <div class="home-empty">Las categorías del catálogo se publicarán aquí cuando el gestor de bodega las registre.</div>
+        {% endif %}
+    </section>
+    <section class="home-section pt-0">
+        <header class="home-section-head">
+            <div><h2>Disponibles en bodega</h2><p>Una selección del catálogo actual.</p></div>
+            <a href="/products/">Buscar un insumo →</a>
+        </header>
+        {% if catalog_database_unavailable %}
+        <div class="home-empty">Los productos destacados estarán disponibles cuando se restablezca la conexión.</div>
+        {% elif featured_supplies %}
+        <div class="featured-grid">
+            {% for supply in featured_supplies %}
+            <article class="featured-item">
+                {% if supply.image_url %}<img src="{{ supply.image_url }}" alt="{{ supply.commercial_name }}" loading="lazy">{% else %}<img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=700&q=80" alt="Insumo farmacéutico" loading="lazy">{% endif %}
+                <div class="featured-copy"><small>{{ supply.category.name }}</small><h3>{{ supply.commercial_name }}</h3><strong>${{ supply.unit_price|floatformat:0 }}</strong></div>
+            </article>
+            {% endfor %}
         </div>
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <h2 class="h4">Reserva tu experiencia</h2>
-                    <p class="text-secondary">Agrega tus tours, revisa el total y confirma tu reserva.</p>
-                    <a class="btn btn-success" href="/cart/">Ver reservas</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+        {% else %}
+        <div class="home-empty">Todavía no hay insumos publicados. Consulta el catálogo más adelante.</div>
+        {% endif %}
+    </section>
+</div>
 {% endblock %}
